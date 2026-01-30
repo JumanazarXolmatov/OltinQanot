@@ -165,15 +165,29 @@ async def cmd_test_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     results = []
     
-    if Config.PRIVATE_GROUP_ID:
-        link = await create_one_time_invite_link(context.bot, Config.PRIVATE_GROUP_ID)
-        status = f"✅ Guruh ({Config.PRIVATE_GROUP_ID}): {link}" if link else f"❌ Guruh ({Config.PRIVATE_GROUP_ID}) xato (Bot admin emas yoki ID noto'g'ri)"
-        results.append(status)
+    chats = [
+        ("Guruh", Config.PRIVATE_GROUP_ID),
+        ("Kanal", Config.PRIVATE_CHANNEL_ID)
+    ]
     
-    if Config.PRIVATE_CHANNEL_ID:
-        link = await create_one_time_invite_link(context.bot, Config.PRIVATE_CHANNEL_ID)
-        status = f"✅ Kanal ({Config.PRIVATE_CHANNEL_ID}): {link}" if link else f"❌ Kanal ({Config.PRIVATE_CHANNEL_ID}) xato"
-        results.append(status)
+    for label, chat_id in chats:
+        if not chat_id or chat_id == 0:
+            results.append(f"⚠️ {label} ID si sozlanmagan (0 yoki Yo'q)")
+            continue
+            
+        try:
+            # Try to get chat info first
+            chat = await context.bot.get_chat(chat_id)
+            chat_info = f"{label}: <b>{chat.title}</b> (ID: {chat_id}, Type: {chat.type})"
+            
+            # Try to create invite link
+            link = await create_one_time_invite_link(context.bot, chat_id)
+            if link:
+                results.append(f"✅ {chat_info}\n🔗 Havola: {link}")
+            else:
+                results.append(f"❌ {chat_info}\n⚠️ Havola yaratib bo'lmadi. Bot guruhda admin va 'Invite Users via Link' ruxsati bormi?")
+        except Exception as e:
+            results.append(f"❌ {label} (ID: {chat_id}) bilan bog'lanishda xato:\n<code>{e}</code>")
         
     if not results:
         results.append("⚠️ Hech qanday guruh yoki kanal ID si sozlanmagan!")
