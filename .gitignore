@@ -1,0 +1,39 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+python_env/
+oltin_qanot.db
+*.db
+*.db-journal
+*.log
+
+# Environment and secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Backups
+backups/
+*.backup
+*.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
