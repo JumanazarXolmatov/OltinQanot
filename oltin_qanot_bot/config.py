@@ -49,6 +49,10 @@ class Config:
     PRIVATE_GROUP_ID: int = int(os.getenv('PRIVATE_GROUP_ID', '0'))
     PRIVATE_CHANNEL_ID: int = int(os.getenv('PRIVATE_CHANNEL_ID', '0'))
     
+    # Static Fallback Links (use if dynamic creation fails)
+    STATIC_GROUP_LINK: str = os.getenv('STATIC_GROUP_LINK', '')
+    STATIC_CHANNEL_LINK: str = os.getenv('STATIC_CHANNEL_LINK', '')
+    
     # Database Configuration
     DATABASE_NAME: str = os.getenv('DATABASE_NAME', 'oltin_qanot.db')
     BACKUP_DIR: str = os.getenv('BACKUP_DIR', 'backups')

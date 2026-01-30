@@ -28,15 +28,23 @@ async def check_and_send_reward(bot: Bot, user_id: int):
         group_link = None
         channel_link = None
         
-        # Try to generate links
+        # Try to generate dynamic links
         try:
             if Config.PRIVATE_GROUP_ID and Config.PRIVATE_GROUP_ID != 0:
                 group_link = await create_one_time_invite_link(bot, Config.PRIVATE_GROUP_ID)
+                # Fallback to static if dynamic failed
+                if not group_link and Config.STATIC_GROUP_LINK:
+                    group_link = Config.STATIC_GROUP_LINK
+                    logger.info(f"Using static fallback group link for user {user_id}")
             
             if Config.PRIVATE_CHANNEL_ID and Config.PRIVATE_CHANNEL_ID != 0:
                 channel_link = await create_one_time_invite_link(bot, Config.PRIVATE_CHANNEL_ID)
+                # Fallback to static if dynamic failed
+                if not channel_link and Config.STATIC_CHANNEL_LINK:
+                    channel_link = Config.STATIC_CHANNEL_LINK
+                    logger.info(f"Using static fallback channel link for user {user_id}")
         except Exception as e:
-            logger.error(f"Critical error creating invite links for user {user_id}: {e}")
+            logger.error(f"Critical error creating/getting invite links for user {user_id}: {e}")
 
         # If we have at least one link, send it
         if group_link or channel_link:
