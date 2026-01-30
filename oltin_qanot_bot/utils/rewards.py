@@ -83,12 +83,18 @@ async def check_and_send_reward(bot: Bot, user_id: int):
                 logger.error(f"Failed to deliver reward message to {user_id}: {e}")
         else:
             # FAILURE CASE: Bot couldn't generate links
+            reason = ""
+            if not Config.PRIVATE_GROUP_ID or Config.PRIVATE_GROUP_ID == 0:
+                reason += "PRIVATE_GROUP_ID is missing or 0. "
+            if not Config.PRIVATE_CHANNEL_ID or Config.PRIVATE_CHANNEL_ID == 0:
+                reason += "PRIVATE_CHANNEL_ID is missing or 0. "
+            
             error_msg = (
-                f"❌ <b>Xatolik:</b> Siz 5 ta do'st taklif qildingiz, lekin bot hozirda yopiq guruh havolasini yarata olmadi.\n\n"
+                f"❌ <b>Xatolik:</b> Siz {5 if batch == 1 else 10} ta do'st taklif qildingiz, lekin bot hozirda yopiq guruh havolasini yarata olmadi.\n\n"
                 f"Iltimos, adminga murojaat qiling: @jumanazar_xolmatov"
             )
-            logger.error(f"Reward generation failed for user {user_id} (batch {batch}). Check bot admin status in groups.")
+            logger.error(f"Reward generation failed for user {user_id} (batch {batch}). Reason: {reason or 'Invite link generation returned None'}. Check bot admin status in groups.")
             try:
                 await bot.send_message(chat_id=user_id, text=error_msg, parse_mode="HTML")
-            except:
-                pass
+            except Exception as send_err:
+                logger.error(f"Could not send error message to user {user_id}: {send_err}")

@@ -187,7 +187,7 @@ def main():
     
     # Start bot
     logger.info("Bot is starting...")
-    print("\n✅ Mathematics Bot is running!")
+    print("\n[OK] Mathematics Bot is running!")
     
     try:
         application.run_polling(

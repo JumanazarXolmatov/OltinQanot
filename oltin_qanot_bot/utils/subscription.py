@@ -71,5 +71,8 @@ async def create_one_time_invite_link(bot: Bot, chat_id: int) -> Optional[str]:
         )
         return link.invite_link
     except TelegramError as e:
-        logger.error(f"Error creating invite link for {chat_id}: {e}")
+        logger.error(f"Telegram API error creating invite link for {chat_id}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error creating invite link for {chat_id}: {e}")
         return None

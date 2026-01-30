@@ -10,17 +10,22 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 # Try current directory first, then parent directory
 env_paths = [
-    Path(__file__).parent / '.env',          # Inside oltin_qanot_bot/
-    Path(__file__).parent.parent / '.env'   # Project root
+    Path(__file__).parent.absolute() / '.env',          # Inside oltin_qanot_bot/
+    Path(__file__).parent.parent.absolute() / '.env'   # Project root
 ]
 
+found_env = False
 for env_path in env_paths:
     if env_path.exists():
         load_dotenv(dotenv_path=env_path)
+        print(f"DEBUG: Loaded environment variables from {env_path}")
+        found_env = True
         break
-else:
+
+if not found_env:
     # If none found, just try default load_dotenv (current working directory)
     load_dotenv()
+    print("DEBUG: Using default load_dotenv (current working directory)")
 
 
 
