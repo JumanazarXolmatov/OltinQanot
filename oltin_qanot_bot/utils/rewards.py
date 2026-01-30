@@ -12,35 +12,32 @@ async def check_and_send_reward(bot: Bot, user_id: int):
     if not user:
         return
 
-    referral_count = user[4]     # index 4
-    reward_sent_count = user[11] # index 11
-    
-    logger.info(f"Checking reward for user {user_id}: refs={referral_count}, sent_count={reward_sent_count}")
+    referral_count = user[4] or 0
+    reward_sent_level = user[11] or 0 # reward_sent_count column used as level (1 for 5 refs, 2 for 10 refs)
     
     # Determine the batches
     batches_to_process = []
-    if referral_count >= 5 and reward_sent_count < 1:
+    if referral_count >= 5 and reward_sent_level < 1:
         batches_to_process.append(1)
-    if referral_count >= 10 and reward_sent_count < 2:
+    if referral_count >= 10 and reward_sent_level < 2:
         batches_to_process.append(2)
         
     for batch in batches_to_process:
-        logger.info(f"User {user_id} processing reward batch {batch}")
+        logger.info(f"User {user_id} processing reward batch {batch} (refs: {referral_count})")
         
-        # Generate links for both Group and Channel if IDs are set
         group_link = None
         channel_link = None
         
-        if Config.PRIVATE_GROUP_ID and Config.PRIVATE_GROUP_ID != 0:
-            group_link = await create_one_time_invite_link(bot, Config.PRIVATE_GROUP_ID)
-            if not group_link:
-                logger.error(f"Failed to generate Group Invite for {Config.PRIVATE_GROUP_ID}. Bot might not be admin.")
-        
-        if Config.PRIVATE_CHANNEL_ID and Config.PRIVATE_CHANNEL_ID != 0:
-            channel_link = await create_one_time_invite_link(bot, Config.PRIVATE_CHANNEL_ID)
-            if not channel_link:
-                logger.error(f"Failed to generate Channel Invite for {Config.PRIVATE_CHANNEL_ID}. Bot might not be admin or ID is wrong.")
-        
+        # Try to generate links
+        try:
+            if Config.PRIVATE_GROUP_ID and Config.PRIVATE_GROUP_ID != 0:
+                group_link = await create_one_time_invite_link(bot, Config.PRIVATE_GROUP_ID)
+            
+            if Config.PRIVATE_CHANNEL_ID and Config.PRIVATE_CHANNEL_ID != 0:
+                channel_link = await create_one_time_invite_link(bot, Config.PRIVATE_CHANNEL_ID)
+        except Exception as e:
+            logger.error(f"Critical error creating invite links for user {user_id}: {e}")
+
         # If we have at least one link, send it
         if group_link or channel_link:
             try:
@@ -50,11 +47,12 @@ async def check_and_send_reward(bot: Bot, user_id: int):
                 if channel_link:
                     await db.db.add_reward_invite(user_id, channel_link, batch)
 
-                # Prepare message text based on available links
-                count_str = "5 ta" if batch == 1 else "10 ta"
-                congrats_text = f"🎉 <b>Tabriklaymiz!</b> Siz {count_str} do'stingizni taklif qildingiz."
+                # Prepare message text
+                count_target = 5 if batch == 1 else 10
+                congrats_text = f"🎉 <b>Tabriklaymiz!</b> Siz {count_target} ta do'stingizni taklif qildingiz."
+                
                 if batch == 2:
-                    congrats_text += "\n🌟 Bu sizning <b>IKKINCHI</b> mukofot havolalaringiz! Buni yaqinlaringizga ulashishingiz mumkin."
+                    congrats_text += "\n🌟 Bu sizning <b>IKKINCHI</b> mukofot havolalaringiz! Raxmat!"
 
                 text = f"{congrats_text}\n\nMana sizning bir martalik havolalaringiz:\n\n"
                 if group_link:
@@ -70,15 +68,19 @@ async def check_and_send_reward(bot: Bot, user_id: int):
                     parse_mode="HTML"
                 )
                 
-                # Mark as sent immediately to prevent duplicates
+                # Mark as sent
                 await db.db.mark_reward_sent(user_id, batch)
-                logger.info(f"Reward links (batch {batch}) sent to {user_id}")
+                logger.info(f"Reward batch {batch} successfully delivered to {user_id}")
             except Exception as e:
-                logger.error(f"Failed to send reward message to {user_id}: {e}")
+                logger.error(f"Failed to deliver reward message to {user_id}: {e}")
         else:
-            logger.error(f"CRITICAL: Failed to generate ANY reward links for {user_id} (batch {batch}). Check if Bot is ADMIN in {Config.PRIVATE_GROUP_ID} and {Config.PRIVATE_CHANNEL_ID}")
-    
-    if referral_count >= 5 and referral_count < 10 and reward_sent_count >= 1:
-         logger.info(f"User {user_id} already received batch 1 reward.")
-    elif referral_count >= 10 and reward_sent_count >= 2:
-         logger.info(f"User {user_id} already received all eligible rewards.")
+            # FAILURE CASE: Bot couldn't generate links
+            error_msg = (
+                f"❌ <b>Xatolik:</b> Siz 5 ta do'st taklif qildingiz, lekin bot hozirda yopiq guruh havolasini yarata olmadi.\n\n"
+                f"Iltimos, adminga murojaat qiling: @jumanazar_xolmatov"
+            )
+            logger.error(f"Reward generation failed for user {user_id} (batch {batch}). Check bot admin status in groups.")
+            try:
+                await bot.send_message(chat_id=user_id, text=error_msg, parse_mode="HTML")
+            except:
+                pass

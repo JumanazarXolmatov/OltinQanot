@@ -154,6 +154,33 @@ async def cmd_unblock(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texts.MSG_ERROR_GENERIC)
 
 
+async def cmd_test_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Test generating reward links (Admin only)"""
+    if update.effective_user.id not in Config.ADMIN_IDS:
+        return
+        
+    await update.message.reply_text("🔍 Mukofot havolalarini yaratish testi boshlandi...")
+    
+    from utils.subscription import create_one_time_invite_link
+    
+    results = []
+    
+    if Config.PRIVATE_GROUP_ID:
+        link = await create_one_time_invite_link(context.bot, Config.PRIVATE_GROUP_ID)
+        status = f"✅ Guruh ({Config.PRIVATE_GROUP_ID}): {link}" if link else f"❌ Guruh ({Config.PRIVATE_GROUP_ID}) xato (Bot admin emas yoki ID noto'g'ri)"
+        results.append(status)
+    
+    if Config.PRIVATE_CHANNEL_ID:
+        link = await create_one_time_invite_link(context.bot, Config.PRIVATE_CHANNEL_ID)
+        status = f"✅ Kanal ({Config.PRIVATE_CHANNEL_ID}): {link}" if link else f"❌ Kanal ({Config.PRIVATE_CHANNEL_ID}) xato"
+        results.append(status)
+        
+    if not results:
+        results.append("⚠️ Hech qanday guruh yoki kanal ID si sozlanmagan!")
+        
+    await update.message.reply_text("\n\n".join(results), parse_mode="HTML")
+
+
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Broadcast message to all users (admin only)"""
     if not is_admin(update.effective_user.id):
