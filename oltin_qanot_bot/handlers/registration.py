@@ -142,7 +142,8 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.message.delete()
     await query.message.reply_text(
         texts.ASK_PHONE_TEMPLATE,
-        reply_markup=reply_markup
+        reply_markup=reply_markup,
+        parse_mode="HTML"
     )
     return ASK_PHONE
 
@@ -172,7 +173,8 @@ async def receive_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(
         texts.ASK_NAME,
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=ReplyKeyboardRemove(),
+        parse_mode="HTML"
     )
     return ASK_NAME
 
