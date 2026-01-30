@@ -68,8 +68,8 @@ async def menu_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         # Check if banner exists and send photo
-        banner_path = r"c:\Users\juman\Downloads\OltinQanot\assets\banner.jpg"
-        if os.path.exists(banner_path):
+        banner_path = Config.get_asset_path("banner.jpg")
+        if banner_path.exists():
             await update.message.reply_photo(
                 photo=open(banner_path, 'rb'),
                 caption=caption,
@@ -189,8 +189,8 @@ async def menu_partners(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         # Check if HackNow image exists
-        image_path = r"c:\Users\juman\Downloads\OltinQanot\oltin_qanot_bot\assets\hacknow.png"
-        if os.path.exists(image_path):
+        image_path = Config.get_asset_path("hacknow.png")
+        if image_path.exists():
             await update.message.reply_photo(
                 photo=open(image_path, 'rb'),
                 caption=caption,

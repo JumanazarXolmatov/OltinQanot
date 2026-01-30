@@ -97,6 +97,19 @@ class Config:
         backup_path.mkdir(exist_ok=True)
         return backup_path
 
+    @classmethod
+    def get_asset_path(cls, filename: str) -> Path:
+        """Get absolute path to an asset file"""
+        # Try both root/assets and oltin_qanot_bot/assets
+        paths = [
+            Path(__file__).parent / 'assets' / filename,
+            Path(__file__).parent.parent / 'assets' / filename
+        ]
+        for path in paths:
+            if path.exists():
+                return path
+        return paths[0] # Default to bot-folder assets
+
 
 # Validate configuration on import
 Config.validate()
