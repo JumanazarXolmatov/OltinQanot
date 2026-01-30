@@ -86,7 +86,8 @@ MSG_MY_POINTS_TEMPLATE = (
     "👤 <b>Mening hisobim</b>\n\n"
     "👤 F.I.Sh: <b>{full_name}</b>\n"
     "🆔 ID: <code>{user_id}</code>\n"
-    "👥 Taklif qilganlaringiz: <b>{referral_count}</b> ta\n\n"
+    "👥 Taklif qilganlaringiz: <b>{referral_count}</b> ta\n"
+    "🏆 O'riningiz: <b>{rank}</b>-o'rin\n\n"
     "{referrals_list}"
     "🎁 Kursga kirish uchun yana <b>{remaining}</b> ta do'stingizni taklif qilishingiz kerak."
 )

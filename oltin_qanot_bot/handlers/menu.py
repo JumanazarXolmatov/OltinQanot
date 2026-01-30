@@ -11,6 +11,8 @@ from utils.formatters import format_referral_link
 import texts
 import os
 import html
+import re
+import urllib.parse
 
 
 async def menu_about_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -104,10 +106,8 @@ async def menu_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await check_and_send_reward(context.bot, user_id)
     
     # Get rank
-    stats = await db.get_statistics()
-    # Simple rank estimation or full leaderboard check
-    # For now, just show the data we have
-    rank = "---" # We can implement a proper rank helper if needed
+    rank = await db.get_user_rank(user_id)
+    rank_str = str(rank) if rank else "---"
     
     # Get referred users
     referred_users = await db.get_referred_users(user_id)
@@ -149,6 +149,7 @@ async def menu_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
             full_name=my_fullname,
             user_id=user_data[0],
             referral_count=referral_count,
+            rank=rank_str,
             referrals_list=referrals_str,
             remaining=remaining
         ),

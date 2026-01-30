@@ -563,3 +563,8 @@ async def get_referred_users(referrer_id: int):
 async def get_statistics():
     """Get contest statistics"""
     return await db.get_statistics()
+
+
+async def get_user_rank(user_id: int):
+    """Get user's rank in leaderboard"""
+    return await db.get_user_rank(user_id)
