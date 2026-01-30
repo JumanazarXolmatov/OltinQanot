@@ -195,6 +195,21 @@ async def cmd_test_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n\n".join(results), parse_mode="HTML")
 
 
+async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Get the ID of the current chat (use in groups/channels)"""
+    chat_id = update.effective_chat.id
+    chat_type = update.effective_chat.type
+    chat_title = update.effective_chat.title or "Private Chat"
+    
+    await update.message.reply_text(
+        f"📊 <b>Chat Ma'lumotlari:</b>\n\n"
+        f"🔹 <b>Nomi:</b> {chat_title}\n"
+        f"🔹 <b>ID:</b> <code>{chat_id}</code>\n"
+        f"🔹 <b>Turi:</b> {chat_type}\n\n"
+        f"<i>Ushbu ID ni .env fayliga PRIVATE_GROUP_ID yoki PRIVATE_CHANNEL_ID sifatida qo'shing.</i>",
+        parse_mode="HTML"
+    )
+
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Broadcast message to all users (admin only)"""
     if not is_admin(update.effective_user.id):

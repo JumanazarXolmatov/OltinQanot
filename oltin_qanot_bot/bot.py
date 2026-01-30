@@ -23,7 +23,7 @@ from handlers.menu import (
 )
 from handlers.admin import (
     cmd_stats, cmd_export, cmd_backup, cmd_user,
-    cmd_block, cmd_unblock, cmd_broadcast, cmd_test_reward
+    cmd_block, cmd_unblock, cmd_broadcast, cmd_test_reward, cmd_id
 )
 from handlers.membership import handle_chat_member_update
 
@@ -184,6 +184,7 @@ def main():
     application.add_handler(CommandHandler("unblock", cmd_unblock))
     application.add_handler(CommandHandler("broadcast", cmd_broadcast))
     application.add_handler(CommandHandler("test_reward", cmd_test_reward))
+    application.add_handler(CommandHandler("id", cmd_id))
     
     # Start bot
     logger.info("Bot is starting...")
