@@ -45,8 +45,15 @@ async def menu_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user:
          await check_and_send_reward(context.bot, user_id)
     
+    # Get bot username from config or dynamic fallback
+    bot_username = Config.BOT_USERNAME
+    if not bot_username or bot_username == "":
+        bot_info = await context.bot.get_me()
+        bot_username = bot_info.username
+        logger.info(f"Using dynamic bot username: {bot_username}")
+
     # Generate unique referral link
-    link = format_referral_link(user_id, Config.BOT_USERNAME)
+    link = format_referral_link(user_id, bot_username)
     
     # Text for the caption (with HTML)
     caption = texts.SHARE_TEXT_TEMPLATE.format(link=link)

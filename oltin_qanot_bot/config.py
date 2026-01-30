@@ -77,6 +77,9 @@ class Config:
         if not cls.BOT_TOKEN:
             raise ValueError("BOT_TOKEN is required in .env file")
         
+        if not cls.BOT_USERNAME:
+            print("WARNING: BOT_USERNAME is not configured in .env")
+        
         if not cls.ADMIN_IDS:
             print("WARNING: No ADMIN_IDS configured")
         
