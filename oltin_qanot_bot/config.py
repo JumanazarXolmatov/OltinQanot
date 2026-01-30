@@ -17,14 +17,14 @@ env_paths = [
 found_env = False
 for env_path in env_paths:
     if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
+        load_dotenv(dotenv_path=env_path, override=True)
         print(f"DEBUG: Loaded environment variables from {env_path}")
         found_env = True
         break
 
 if not found_env:
     # If none found, just try default load_dotenv (current working directory)
-    load_dotenv()
+    load_dotenv(override=True)
     print("DEBUG: Using default load_dotenv (current working directory)")
 
 
@@ -53,6 +53,10 @@ class Config:
     # Private Group Configuration
     PRIVATE_GROUP_ID: int = int(os.getenv('PRIVATE_GROUP_ID', '0'))
     PRIVATE_CHANNEL_ID: int = int(os.getenv('PRIVATE_CHANNEL_ID', '0'))
+    
+    # Initial debug prints
+    print(f"DEBUG: PRIVATE_GROUP_ID = {PRIVATE_GROUP_ID}")
+    print(f"DEBUG: PRIVATE_CHANNEL_ID = {PRIVATE_CHANNEL_ID}")
     
     # Static Fallback Links (use if dynamic creation fails)
     STATIC_GROUP_LINK: str = os.getenv('STATIC_GROUP_LINK', '')
