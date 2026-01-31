@@ -5,96 +5,97 @@ from utils.subscription import create_one_time_invite_link
 from utils.logger import logger
 import texts
 
+from telegram.error import TelegramError
+
 async def check_and_send_reward(bot: Bot, user_id: int):
-    """Check qualification and send reward link if eligible"""
-    # Get fresh user data
-    user = await db.get_user(user_id)
-    if not user:
+    """
+    Check qualification and send reward link if eligible.
+    Logic:
+    1. Count ACTIVE referrals (status='active').
+    2. If >= 5 active refs -> Check if user is in Private Group. If NOT, send link.
+    3. If >= 10 active refs -> Check if user is in Private Channel. If NOT, send link.
+    """
+    # 1. Get fresh ACTIVE referral count
+    # We query the count directly to be 100% sure we are counting only active users
+    active_count = await db.get_active_referral_count(user_id)
+    
+    logger.info(f"Checking rewards for user {user_id}. Active referrals: {active_count}")
+    
+    # 2. Check qualifications
+    group_needed = False
+    channel_needed = False
+    
+    if active_count >= 5:
+        # User qualifies for group. Check if they are already inside.
+        if Config.PRIVATE_GROUP_ID and Config.PRIVATE_GROUP_ID != 0:
+            try:
+                member = await bot.get_chat_member(Config.PRIVATE_GROUP_ID, user_id)
+                if member.status not in ['member', 'administrator', 'creator']:
+                    # User is NOT in the group (left, kicked, or never joined)
+                    group_needed = True
+                    logger.info(f"User {user_id} qualifies for GROUP (5+) and is not a member (status: {member.status})")
+            except Exception as e:
+                # If we get "User not found" or similar, they are not in chat
+                group_needed = True
+                logger.warning(f"Could not check group membership for {user_id}: {e}. Assuming needs link.")
+    
+    if active_count >= 10:
+        # User qualifies for channel. Check if they are already inside.
+        if Config.PRIVATE_CHANNEL_ID and Config.PRIVATE_CHANNEL_ID != 0:
+            try:
+                member = await bot.get_chat_member(Config.PRIVATE_CHANNEL_ID, user_id)
+                if member.status not in ['member', 'administrator', 'creator']:
+                    channel_needed = True
+                    logger.info(f"User {user_id} qualifies for CHANNEL (10+) and is not a member (status: {member.status})")
+            except Exception as e:
+                channel_needed = True
+                logger.warning(f"Could not check channel membership for {user_id}: {e}. Assuming needs link.")
+
+    # 3. Generate and send links if needed
+    if not group_needed and not channel_needed:
         return
 
-    referral_count = user[4] or 0
-    reward_sent_level = user[11] or 0 # reward_sent_count column used as level (1 for 5 refs, 2 for 10 refs)
+    group_link = None
+    channel_link = None
     
-    # Determine the batches
-    batches_to_process = []
-    if referral_count >= 5 and reward_sent_level < 1:
-        batches_to_process.append(1)
-    if referral_count >= 10 and reward_sent_level < 2:
-        batches_to_process.append(2)
-        
-    for batch in batches_to_process:
-        logger.info(f"User {user_id} processing reward batch {batch} (refs: {referral_count})")
-        
-        group_link = None
-        channel_link = None
-        
-        # Try to generate dynamic links
+    try:
+        if group_needed:
+            group_link = await create_one_time_invite_link(bot, Config.PRIVATE_GROUP_ID)
+            if not group_link and Config.STATIC_GROUP_LINK:
+                group_link = Config.STATIC_GROUP_LINK
+
+        if channel_needed:
+            channel_link = await create_one_time_invite_link(bot, Config.PRIVATE_CHANNEL_ID)
+            if not channel_link and Config.STATIC_CHANNEL_LINK:
+                channel_link = Config.STATIC_CHANNEL_LINK
+
+    except Exception as e:
+        logger.error(f"Error creating invite links for user {user_id}: {e}")
+
+    if group_link or channel_link:
         try:
-            if Config.PRIVATE_GROUP_ID and Config.PRIVATE_GROUP_ID != 0:
-                group_link = await create_one_time_invite_link(bot, Config.PRIVATE_GROUP_ID)
-                # Fallback to static if dynamic failed
-                if not group_link and Config.STATIC_GROUP_LINK:
-                    group_link = Config.STATIC_GROUP_LINK
-                    logger.info(f"Using static fallback group link for user {user_id}")
+            # Prepare message
+            text = f"🎉 <b>Tabriklaymiz!</b> Sizda <b>{active_count}</b> ta faol taklif mavjud.\n\n"
+            text += "Siz yopiq chatlarga kirish huquqiga egasiz. Mana yangi havolalar:\n\n"
             
-            if Config.PRIVATE_CHANNEL_ID and Config.PRIVATE_CHANNEL_ID != 0:
-                channel_link = await create_one_time_invite_link(bot, Config.PRIVATE_CHANNEL_ID)
-                # Fallback to static if dynamic failed
-                if not channel_link and Config.STATIC_CHANNEL_LINK:
-                    channel_link = Config.STATIC_CHANNEL_LINK
-                    logger.info(f"Using static fallback channel link for user {user_id}")
-        except Exception as e:
-            logger.error(f"Critical error creating/getting invite links for user {user_id}: {e}")
-
-        # If we have at least one link, send it
-        if group_link or channel_link:
-            try:
-                # Store links for tracking
-                if group_link:
-                    await db.db.add_reward_invite(user_id, group_link, batch)
-                if channel_link:
-                    await db.db.add_reward_invite(user_id, channel_link, batch)
-
-                # Prepare message text
-                count_target = 5 if batch == 1 else 10
-                congrats_text = f"🎉 <b>Tabriklaymiz!</b> Siz {count_target} ta do'stingizni taklif qildingiz."
+            if group_link:
+                text += f"👥 <b>Yopiq guruh:</b> {group_link}\n"
+                # Log usage
+                await db.db.add_reward_invite(user_id, group_link, 1)
                 
-                if batch == 2:
-                    congrats_text += "\n🌟 Bu sizning <b>IKKINCHI</b> mukofot havolalaringiz! Raxmat!"
-
-                text = f"{congrats_text}\n\nMana sizning bir martalik havolalaringiz:\n\n"
-                if group_link:
-                    text += f"👥 <b>Yopiq guruh:</b> {group_link}\n"
-                if channel_link:
-                    text += f"📢 <b>Yopiq kanal:</b> {channel_link}\n"
-                
-                text += "\n⚠️ <b>Eslatma:</b> Ushbu havolalar faqat bir marta ishlaydi!"
-
-                await bot.send_message(
-                    chat_id=user_id,
-                    text=text,
-                    parse_mode="HTML"
-                )
-                
-                # Mark as sent
-                await db.db.mark_reward_sent(user_id, batch)
-                logger.info(f"Reward batch {batch} successfully delivered to {user_id}")
-            except Exception as e:
-                logger.error(f"Failed to deliver reward message to {user_id}: {e}")
-        else:
-            # FAILURE CASE: Bot couldn't generate links
-            reason = ""
-            if not Config.PRIVATE_GROUP_ID or Config.PRIVATE_GROUP_ID == 0:
-                reason += "PRIVATE_GROUP_ID is missing or 0. "
-            if not Config.PRIVATE_CHANNEL_ID or Config.PRIVATE_CHANNEL_ID == 0:
-                reason += "PRIVATE_CHANNEL_ID is missing or 0. "
+            if channel_link:
+                text += f"📢 <b>Yopiq kanal:</b> {channel_link}\n"
+                # Log usage
+                await db.db.add_reward_invite(user_id, channel_link, 2)
             
-            error_msg = (
-                f"❌ <b>Xatolik:</b> Siz {5 if batch == 1 else 10} ta do'st taklif qildingiz, lekin bot hozirda yopiq guruh havolasini yarata olmadi.\n\n"
-                f"Iltimos, adminga murojaat qiling: @jumanazar_xolmatov"
+            text += "\n⚠️ <b>Eslatma:</b> Agar yana chiqib ketsangiz, qayta kirish uchun ballaringiz yetarli bo'lishi kerak!"
+
+            await bot.send_message(
+                chat_id=user_id,
+                text=text,
+                parse_mode="HTML"
             )
-            logger.error(f"Reward generation failed for user {user_id} (batch {batch}). Reason: {reason or 'Invite link generation returned None'}. Check bot admin status in groups.")
-            try:
-                await bot.send_message(chat_id=user_id, text=error_msg, parse_mode="HTML")
-            except Exception as send_err:
-                logger.error(f"Could not send error message to user {user_id}: {send_err}")
+            logger.info(f"Sent reward links to {user_id} (Group: {bool(group_link)}, Channel: {bool(channel_link)})")
+            
+        except Exception as e:
+            logger.error(f"Failed to send reward message to {user_id}: {e}")

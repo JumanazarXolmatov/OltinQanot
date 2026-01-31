@@ -1,0 +1,25 @@
+Bot: @matematika_darslariuz_bot
+
+============================================================
+PRIVATE GROUP CHECK
+============================================================
+Chat ID: -1003801235887
+Title: Milliy sertifikat va Attestatsiya muhokama guruhi
+Bot Status: administrator
+OK: Bot is administrator
+OK: Can restrict members = YES
+
+============================================================
+PRIVATE CHANNEL CHECK
+============================================================
+Chat ID: -1001840319416
+Title: Milliy Sertifikat va Attestatsiya
+Bot Status: administrator
+OK: Bot is administrator
+OK: Can restrict members = YES
+
+============================================================
+SUMMARY:
+Bot MUST be admin with 'Ban users' permission
+in both private group and channel!
+============================================================

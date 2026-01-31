@@ -63,26 +63,63 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return ConversationHandler.END
 
-    # Start with subscription check
+async def get_subscription_keyboard(bot, user_id):
+    """Generate keyboard with only missing channels"""
+    is_subscribed, not_subscribed = await check_user_subscription(
+        bot, user_id, Config.REQUIRED_CHANNELS
+    )
+    
     keyboard = []
-    # User requested specific labels: 
-    # 1. Matematika darslari (channel)
-    # 2. Matematika guruhi (group)
-    
-    # First link (Channel)
-    keyboard.append([InlineKeyboardButton(
-        f"📢 MATEMATIKA DARSLARI",
-        url=f"https://t.me/Matematika_darslari_dtm"
-    )])
-    
-    # Second link (Group)
-    keyboard.append([InlineKeyboardButton(
-        f"💬 Matematika guruhi",
-        url=f"https://t.me/matematika2021u"
-    )])
+    for channel in not_subscribed:
+        label = texts.BTN_SUB_CHANNEL if 'Matematika_darslari_dtm' in channel else texts.BTN_SUB_GROUP
+        # Map channel name to its invite link/url
+        url = "https://t.me/Matematika_darslari_dtm" if 'Matematika_darslari_dtm' in channel else "https://t.me/matematika2021u"
+        keyboard.append([InlineKeyboardButton(label, url=url)])
     
     keyboard.append([InlineKeyboardButton(texts.BTN_SUBSCRIBED, callback_data="check_sub")])
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    return InlineKeyboardMarkup(keyboard), not_subscribed
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /start command"""
+    user = update.effective_user
+    args = context.args
+    referrer_id = None
+    
+    # Extract referrer ID from deep link
+    if args and args[0].isdigit():
+        referrer_id = int(args[0])
+        
+        # Check if referrer is ELIGIBLE (subscribed to mandatory channels)
+        is_ref_active, _ = await check_user_subscription(
+            context.bot,
+            referrer_id,
+            Config.REQUIRED_CHANNELS
+        )
+        
+        if not is_ref_active:
+            logger.info(f"Referrer {referrer_id} is NOT eligible. Referral for {user.id} ignored.")
+            referrer_id = None
+        else:
+            logger.info(f"User {user.id} started with active referrer {referrer_id}")
+    
+    # Try to add user (pending)
+    await db.add_user(user.id, user.username, referrer_id)
+    
+    # Check if fully registered
+    existing_user = await db.get_user(user.id)
+    if existing_user and existing_user[2] and existing_user[7]: # Has name and phone
+        # Verify they are STILL subscribed
+        is_subscribed, _ = await check_user_subscription(context.bot, user.id, Config.REQUIRED_CHANNELS)
+        if is_subscribed:
+            await update.message.reply_text(
+                texts.MSG_WELCOME_BACK,
+                reply_markup=await get_main_menu_keyboard()
+            )
+            return ConversationHandler.END
+
+    # Start with subscription check
+    reply_markup, not_subscribed = await get_subscription_keyboard(context.bot, user.id)
     
     # Welcome message with safe name
     name = user.first_name or user.full_name or "Foydalanuvchi"
@@ -112,25 +149,12 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if not is_subscribed:
         logger.info(f"User {user_id} is still not subscribed to: {not_subscribed}")
-        # Show specific buttons for missing channels/groups
-        keyboard = []
-        # First link (Channel)
-        keyboard.append([InlineKeyboardButton(
-            f"📢 MATEMATIKA DARSLARI",
-            url=f"https://t.me/Matematika_darslari_dtm"
-        )])
         
-        # Second link (Group)
-        keyboard.append([InlineKeyboardButton(
-            f"💬 Matematika guruhi",
-            url=f"https://t.me/matematika2021u"
-        )])
-        
-        keyboard.append([InlineKeyboardButton(texts.BTN_SUBSCRIBED, callback_data="check_sub")])
+        reply_markup, _ = await get_subscription_keyboard(context.bot, user_id)
         
         await query.answer(text=texts.MSG_NOT_SUBSCRIBED, show_alert=True)
         try:
-            await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(keyboard))
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
         except Exception:
             pass
         return CHECK_SUB

@@ -25,26 +25,12 @@ async def check_subscription_status(update: Update, context: ContextTypes.DEFAUL
     )
     
     if not is_subscribed:
-        keyboard = []
-        # First link (Channel)
-        keyboard.append([InlineKeyboardButton(
-            f"📢 MATEMATIKA DARSLARI",
-            url=f"https://t.me/Matematika_darslari_dtm"
-        )])
-        
-        # Second link (Group)
-        keyboard.append([InlineKeyboardButton(
-            f"💬 Matematika guruhi",
-            url=f"https://t.me/matematika2021u"
-        )])
-        
-        # Check button (uses the same callback as registration for consistency)
-        keyboard.append([InlineKeyboardButton("✅ Obunani tekshirish", callback_data="check_sub")])
+        from handlers.registration import get_subscription_keyboard
+        reply_markup, _ = await get_subscription_keyboard(context.bot, user_id)
         
         await update.message.reply_text(
-            "⚠️ <b>Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart!</b>\n\n"
-            "Pastdagi tugmalar orqali kanallarga a'zo bo'ling va 'Obunani tekshirish' tugmasini bosing.",
-            reply_markup=InlineKeyboardMarkup(keyboard),
+            texts.MSG_SUB_SPECIFIC,
+            reply_markup=reply_markup,
             parse_mode="HTML"
         )
         return False

@@ -1,0 +1,22 @@
+Bot: @matematika_darslariuz_bot (ID: 8550613250)
+
+======================================================================
+CHECKING MANDATORY CHANNELS
+======================================================================
+
+Channel: @Matematika_darslari_dtm
+  Chat ID: -1001839119637
+  Title: MATEMATIKA DARSLARI
+  Bot Status: administrator
+  OK: Bot is administrator
+
+Channel: @matematika2021u
+  Chat ID: -1001199689939
+  Title: Matematika guruhi
+  Bot Status: administrator
+  OK: Bot is administrator
+
+======================================================================
+SUCCESS: Bot is admin in all mandatory channels
+Bot CAN receive ChatMember updates (leave events)
+======================================================================

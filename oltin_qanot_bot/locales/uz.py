@@ -14,6 +14,17 @@ ASK_PHONE_TEMPLATE = (
     "Quyidagi '📞 Raqamni yuborish' tugmasini bosing:"
 )
 
+MSG_LEFT_NOTIFICATION = (
+    "⚠️ <b>Diqqat!</b>\n\n"
+    "Siz <b>{channel_name}</b> kanalidan/guruhidan chiqib ketdingiz.\n"
+    "Botdan foydalanishni davom ettirish uchun iltimos qayta a'zo bo'ling!"
+)
+
+MSG_SUB_SPECIFIC = (
+    "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo'lishingiz shart!</b>\n\n"
+    "Iltimos, ushbu manbalarga a'zo bo'ling va '✅ Tasdiqlash' tugmasini bosing:"
+)
+
 ASK_NAME = (
     "1️⃣ F.I.Sh kiriting.\n"
     "📌 <b>Eslatma:</b> Ism familiya pasport/ID karta bilan bir xil bo'lishi kerak!\n"
@@ -74,8 +85,8 @@ BTN_SEND_MESSAGE = "✍️ Xabar yuborish"
 
 # Button Labels (Inline)
 BTN_SUBSCRIBED = "✅ Tasdiqlash"
-BTN_SUB_CHANNEL = "KANALGA OBUNA BO'LING"
-BTN_SUB_GROUP = "GURUHGA OBUNA BO'LING"
+BTN_SUB_CHANNEL = "📢 MATEMATIKA DARSLARI"
+BTN_SUB_GROUP = "💬 Matematika guruhi"
 BTN_SHARE = "📤 Ulashish"
 BTN_PREV = "⬅️ Oldingi"
 BTN_NEXT = "➡️ Keyingi"

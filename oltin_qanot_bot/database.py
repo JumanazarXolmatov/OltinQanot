@@ -155,9 +155,9 @@ class Database:
         """
         async with aiosqlite.connect(self.db_path) as db:
             try:
-                # 1. Update referred user status
+                # 1. Update referred user status - mark as unsubscribed
                 await db.execute(
-                    "UPDATE users SET is_referral_counted = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                    "UPDATE users SET is_referral_counted = 0, status = 'unsubscribed', updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
                     (user_id,)
                 )
                 
@@ -503,6 +503,16 @@ class Database:
                 return '\n'.join(csv_lines)
 
 
+    async def get_active_referral_count(self, referrer_id: int) -> int:
+        """Get exact count of active referrals for a user"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT COUNT(*) FROM users WHERE referrer_id = ? AND is_referral_counted = 1 AND status = 'active'",
+                (referrer_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
+
     async def get_referred_users(self, referrer_id: int) -> List[Tuple]:
         """Get list of users referred by this user who have completed registration"""
         async with aiosqlite.connect(self.db_path) as db:
@@ -576,3 +586,8 @@ async def get_statistics():
 async def get_user_rank(user_id: int):
     """Get user's rank in leaderboard"""
     return await db.get_user_rank(user_id)
+
+
+async def get_active_referral_count(referrer_id: int):
+    """Get active referral count"""
+    return await db.get_active_referral_count(referrer_id)

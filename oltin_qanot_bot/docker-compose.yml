@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    restart: always
+    volumes:
+      - ./oltin_qanot.db:/app/oltin_qanot.db
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    env_file:
+      - .env
