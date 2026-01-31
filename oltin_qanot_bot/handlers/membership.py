@@ -47,54 +47,59 @@ async def handle_chat_member_update(update: Update, context: ContextTypes.DEFAUL
         if referrer_id:
             logger.info(f"Processing unsubscribe for user {user_id} (referrer: {referrer_id}, batch: {referral_batch})")
             
-            # Use method to update BOTH user status and referrer count
+            # 1. Update BOTH user status and referrer count
             await db.db.handle_referral_unsubscribe(user_id, referrer_id)
             
-            # Check if referrer still has 5 or 10 points
+            # 2. Check if referrer still has minimum points (5)
             ref_data = await db.get_user(referrer_id)
             if not ref_data:
                 return
                 
             current_count = ref_data[4]
-            reward_sent_count = ref_data[11]
             
-            # Tiered kicking logic based on the batch of the person who LEFT
-            target_batch = 0
-            if referral_batch == 2 and current_count < 10:
-                target_batch = 2
-            elif referral_batch == 1 and current_count < 5:
-                target_batch = 1
+            # If points drop below 5, kick the referrer from private channels/groups
+            if current_count < 5:
+                logger.warning(f"Referrer {referrer_id} points dropped to {current_count}. Kicking from private chats.")
                 
-            if target_batch > 0:
-                # Find who to kick
-                beneficiary_id = await db.db.get_reward_beneficiary(referrer_id, target_batch)
-                if not beneficiary_id:
-                    # If no specific beneficiary found (maybe they joined before tracking started),
-                    # default to kicking the referrer themselves for batch 1
-                    beneficiary_id = referrer_id if target_batch == 1 else None
-                
-                if beneficiary_id:
-                    try:
-                        # Remove from PRIVATE GROUP
-                        if Config.PRIVATE_GROUP_ID != 0:
-                            await context.bot.ban_chat_member(chat_id=Config.PRIVATE_GROUP_ID, user_id=beneficiary_id)
-                            await context.bot.unban_chat_member(chat_id=Config.PRIVATE_GROUP_ID, user_id=beneficiary_id)
-                        
-                        # Remove from PRIVATE CHANNEL
-                        if Config.PRIVATE_CHANNEL_ID != 0:
-                            await context.bot.ban_chat_member(chat_id=Config.PRIVATE_CHANNEL_ID, user_id=beneficiary_id)
-                            await context.bot.unban_chat_member(chat_id=Config.PRIVATE_CHANNEL_ID, user_id=beneficiary_id)
-                        
-                        logger.warning(f"Beneficiary {beneficiary_id} removed from private chats (Referrer {referrer_id} count: {current_count})")
-                        
-                        # Notify referrer
-                        await context.bot.send_message(
-                            chat_id=referrer_id,
-                            text=texts.MSG_POINTS_DECREASED,
-                            parse_mode="HTML"
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to remove/notify beneficiary {beneficiary_id}: {e}")
+                try:
+                    # Remove from PRIVATE GROUP
+                    if Config.PRIVATE_GROUP_ID != 0:
+                        await context.bot.ban_chat_member(chat_id=Config.PRIVATE_GROUP_ID, user_id=referrer_id)
+                        await context.bot.unban_chat_member(chat_id=Config.PRIVATE_GROUP_ID, user_id=referrer_id)
+                    
+                    # Remove from PRIVATE CHANNEL
+                    if Config.PRIVATE_CHANNEL_ID != 0:
+                        await context.bot.ban_chat_member(chat_id=Config.PRIVATE_CHANNEL_ID, user_id=referrer_id)
+                        await context.bot.unban_chat_member(chat_id=Config.PRIVATE_CHANNEL_ID, user_id=referrer_id)
+                    
+                    # Notify referrer
+                    await context.bot.send_message(
+                        chat_id=referrer_id,
+                        text=(
+                            "⚠️ <b>Diqqat!</b>\n\n"
+                            "Siz taklif qilgan do'stlaringizdan biri kanallardan chiqib ketdi. "
+                            f"Hozirda sizning ballaringiz <b>{current_count}</b> ga tushib qoldi.\n\n"
+                            "Ballaringiz 5 tadan kam bo'lgani uchun siz yopiq guruh va kanaldan chiqarildingiz. "
+                            "Yana qo'shilish uchun ballaringizni 5 taga ko'paytiring!"
+                        ),
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to kick/notify referrer {referrer_id}: {e}")
+            else:
+                # Still has 5+ points, but notify that count decreased
+                try:
+                    await context.bot.send_message(
+                        chat_id=referrer_id,
+                        text=(
+                            "📉 <b>Ballaringiz kamaydi!</b>\n\n"
+                            "Siz taklif qilgan do'stlardan biri kanalni tark etdi. "
+                            f"Sizning joriy ballaringiz: <b>{current_count}</b>"
+                        ),
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to notify referrer {referrer_id} about decrease: {e}")
 
 async def handle_chat_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log when a user joins via a tracked invite link"""

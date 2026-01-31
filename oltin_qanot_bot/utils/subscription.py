@@ -24,6 +24,7 @@ async def check_user_subscription(
         Tuple of (is_subscribed_to_all, list_of_unsubscribed_channels)
     """
     not_subscribed = []
+    logger.info(f"Checking subscription for user {user_id} in channels: {channels}")
     
     for channel in channels:
         try:

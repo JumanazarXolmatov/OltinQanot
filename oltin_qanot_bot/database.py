@@ -316,18 +316,26 @@ class Database:
             try:
                 # Get referrer info
                 async with db.execute(
-                    "SELECT referrer_id, is_referral_counted FROM users WHERE user_id = ?",
+                    "SELECT referrer_id, is_referral_counted, full_name, username FROM users WHERE user_id = ?",
                     (user_id,)
                 ) as cursor:
                     row = await cursor.fetchone()
                     if not row:
+                        logger.warning(f"Could not confirm referral: User {user_id} not found in DB")
                         return False
                     
-                    referrer_id, is_counted = row
+                    referrer_id, is_counted, full_name, username = row
                 
                 # Check if already counted or no valid referrer
-                if is_counted or not referrer_id or referrer_id == user_id:
+                if is_counted:
+                    logger.info(f"Referral for user {user_id} already counted.")
                     return False
+                
+                if not referrer_id or referrer_id == user_id:
+                    logger.info(f"User {user_id} has no valid referrer (referrer_id={referrer_id})")
+                    return False
+                
+                logger.info(f"Confirming referral: User {user_id} ({full_name or username}) referred by {referrer_id}")
                 
                 # Mark as counted
                 await db.execute(

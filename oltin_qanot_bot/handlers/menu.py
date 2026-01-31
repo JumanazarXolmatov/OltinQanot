@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 import database as db
 from config import Config
 from utils.logger import logger
-from utils.subscription import create_one_time_invite_link
+from utils.subscription import check_user_subscription
 from utils.formatters import format_referral_link
 import texts
 import os
@@ -15,8 +15,48 @@ import re
 import urllib.parse
 
 
+async def check_subscription_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check if user is subscribed and notify if not"""
+    user_id = update.effective_user.id
+    is_subscribed, not_subscribed = await check_user_subscription(
+        context.bot,
+        user_id,
+        Config.REQUIRED_CHANNELS
+    )
+    
+    if not is_subscribed:
+        keyboard = []
+        # First link (Channel)
+        keyboard.append([InlineKeyboardButton(
+            f"📢 MATEMATIKA DARSLARI",
+            url=f"https://t.me/Matematika_darslari_dtm"
+        )])
+        
+        # Second link (Group)
+        keyboard.append([InlineKeyboardButton(
+            f"💬 Matematika guruhi",
+            url=f"https://t.me/matematika2021u"
+        )])
+        
+        # Check button (uses the same callback as registration for consistency)
+        keyboard.append([InlineKeyboardButton("✅ Obunani tekshirish", callback_data="check_sub")])
+        
+        await update.message.reply_text(
+            "⚠️ <b>Botdan foydalanish uchun kanallarga obuna bo'lishingiz shart!</b>\n\n"
+            "Pastdagi tugmalar orqali kanallarga a'zo bo'ling va 'Obunani tekshirish' tugmasini bosing.",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+        return False
+    
+    return True
+
+
 async def menu_about_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'About Course' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     await update.message.reply_text(
         texts.MSG_ABOUT_COURSE,
         parse_mode="HTML"
@@ -25,6 +65,9 @@ async def menu_about_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_conditions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'Conditions' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     await update.message.reply_text(
         texts.MSG_CONDITIONS,
         parse_mode="HTML"
@@ -36,6 +79,9 @@ from utils.rewards import check_and_send_reward
 
 async def menu_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'Invite Friends' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     user_id = update.effective_user.id
     
     # Get user data to ensure latest points
@@ -102,6 +148,9 @@ async def menu_invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'My Points' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     user_id = update.effective_user.id
     user_data = await db.get_user(user_id)
     
@@ -166,6 +215,9 @@ async def menu_my_points(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_channels(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'Our Channels' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     keyboard = []
     
     # First link (Channel)
@@ -188,6 +240,9 @@ async def menu_channels(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_partners(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'Partners' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     keyboard = [
         [InlineKeyboardButton("📢 Kanalimizga obuna bo'ling", url="https://t.me/hacknow_uz")],
         [InlineKeyboardButton("👨‍💻 Bot yaratuvchisi", url="https://t.me/jumanazar_xolmatov")]
@@ -221,6 +276,9 @@ async def menu_partners(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle 'Send Message' button"""
+    if not await check_subscription_status(update, context):
+        return
+        
     keyboard = [
         [InlineKeyboardButton("✍️ Adminga yozish", url="https://t.me/jumanazar_xolmatov")]
     ]

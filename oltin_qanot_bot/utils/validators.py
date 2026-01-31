@@ -46,8 +46,8 @@ def validate_full_name(name: str) -> Tuple[bool, str]:
     if len(words) < 2:
         return False, "Iltimos, to'liq ism familiyangizni kiriting (kamida 2 ta so'z)"
     
-    # Check for invalid characters (only letters, spaces, apostrophes, hyphens)
-    if not re.match(r"^[a-zA-ZÀ-ÿ\s'\-]+$", name, re.UNICODE):
+    # Check for invalid characters (only letters, spaces, apostrophes, hyphens, and Uzbek special chars)
+    if not re.match(r"^[a-zA-ZÀ-ÿа-яА-ЯёЁқҚғҒҳҲўЎ\s'ʻʼ\-]+$", name, re.UNICODE):
         return False, "Ism faqat harflardan iborat bo'lishi kerak"
     
     return True, ""

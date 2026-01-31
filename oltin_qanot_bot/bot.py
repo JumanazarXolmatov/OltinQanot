@@ -16,7 +16,7 @@ import database as db
 import texts
 
 # Import handlers
-from handlers.registration import get_registration_handler
+from handlers.registration import get_registration_handler, check_subscription
 from handlers.menu import (
     menu_invite, menu_my_points, menu_about_course, 
     menu_conditions, menu_channels, menu_partners, menu_send_message
@@ -141,6 +141,9 @@ def main():
     
     # Add registration conversation handler
     application.add_handler(get_registration_handler())
+    
+    # Global subscription check callback (for already registered users who get checked via menu)
+    application.add_handler(CallbackQueryHandler(check_subscription, pattern="^check_sub$"))
     
     # Add menu handlers
     application.add_handler(MessageHandler(

@@ -103,6 +103,7 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     user_id = query.from_user.id
     
+    logger.info(f"Verifying subscription for user {user_id}...")
     is_subscribed, not_subscribed = await check_user_subscription(
         context.bot,
         user_id,
@@ -110,6 +111,7 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     
     if not is_subscribed:
+        logger.info(f"User {user_id} is still not subscribed to: {not_subscribed}")
         # Show specific buttons for missing channels/groups
         keyboard = []
         # First link (Channel)
@@ -133,13 +135,31 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
             pass
         return CHECK_SUB
     
-    await query.answer()
+    await query.answer(text="✅ Obuna tasdiqlandi!", show_alert=False)
+    logger.info(f"User {user_id} subscription confirmed.")
+
+    # Check if user is ALREADY fully registered (for global checks from menu)
+    user_data = await db.get_user(user_id)
+    if user_data and user_data[7] and user_data[2]: # Has phone and name
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        await query.message.reply_text(
+            texts.MSG_WELCOME_BACK,
+            reply_markup=await get_main_menu_keyboard()
+        )
+        return ConversationHandler.END
     
-    # If subscribed, move to next step (Phone)
+    # If NOT registered, move to next step (Phone)
     keyboard = [[KeyboardButton(texts.BTN_SEND_PHONE, request_contact=True)]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
     
-    await query.message.delete()
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
+        
     await query.message.reply_text(
         texts.ASK_PHONE_TEMPLATE,
         reply_markup=reply_markup,
